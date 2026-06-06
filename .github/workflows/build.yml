@@ -1,0 +1,46 @@
+name: Build (Android APK)
+
+# Builds the debug Android APK on merge to main (and on demand).
+# Uses GameCI's built-in builder (NOT Editor/Builder.cs — that one calls
+# EditorApplication.Exit and is for local batchmode only).
+# Requires Unity license secrets: UNITY_LICENSE, UNITY_EMAIL, UNITY_PASSWORD.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Android debug build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache Unity Library
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Android-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-Android-
+            Library-
+
+      - name: Build Android
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: Android
+          androidExportType: androidPackage    # .apk (use 'androidAppBundle' for .aab)
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pully-android
+          path: build/Android
+          if-no-files-found: error
