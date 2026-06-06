@@ -90,7 +90,7 @@ namespace Pully.Game
 
         private void HandleMouse()
         {
-            if (Mouse.current == null) return;
+            if (Mouse.current == null || Keyboard.current == null) return;
 
             if (Mouse.current.leftButton.wasReleasedThisFrame)
             {
@@ -98,21 +98,22 @@ namespace Pully.Game
                 var target = spawner.FindTargetAtScreenPos(pos);
                 if (target == null) return;
 
-                var gesture = RulesetDefinition.Gesture.SingleTap;
-                if (Time.time - _lastMouseTapTime <= ruleset.doubleTapWindow && _lastMouseTarget == target)
+                bool ctrl = Keyboard.current.leftCtrlKey.isPressed || Keyboard.current.rightCtrlKey.isPressed;
+                bool shift = Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
+                bool alt = Keyboard.current.leftAltKey.isPressed || Keyboard.current.rightAltKey.isPressed;
+                bool cmd = Keyboard.current.leftMetaKey.isPressed || Keyboard.current.rightMetaKey.isPressed;
+
+                RulesetDefinition.Gesture gesture;
+                if (shift) gesture = RulesetDefinition.Gesture.LongPress;
+                else if (alt) gesture = RulesetDefinition.Gesture.SwipeTap;
+                else if (cmd) gesture = RulesetDefinition.Gesture.TwoFingerTap;
+                else if (ctrl || (Time.time - _lastMouseTapTime <= ruleset.doubleTapWindow && _lastMouseTarget == target))
                     gesture = RulesetDefinition.Gesture.DoubleTap;
+                else gesture = RulesetDefinition.Gesture.SingleTap;
 
                 _lastMouseTapTime = Time.time;
                 _lastMouseTarget = target;
                 gameManager.OnGesturePerformed(target, gesture);
-            }
-
-            if (Mouse.current.rightButton.wasReleasedThisFrame)
-            {
-                var pos = Mouse.current.position.value;
-                var target = spawner.FindTargetAtScreenPos(pos);
-                if (target != null)
-                    gameManager.OnGesturePerformed(target, RulesetDefinition.Gesture.LongPress);
             }
         }
     }
