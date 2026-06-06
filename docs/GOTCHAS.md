@@ -19,3 +19,4 @@ Read before each phase. Append any new trap + its fix so the next run (and the n
 - 2026-06-06 — Fresh run repo may not include a Unity project skeleton (`Packages/`, `ProjectSettings/`) even after template copy → open once in Unity and let project metadata generate before expecting batch workflows.
 - 2026-06-06 — Unity test runner can exit 0 yet not emit `-testResults` XML in some local batch invocations → verify artifact path explicitly and avoid over-claiming pass counts.
 - 2026-06-06 — `EnhancedTouch.Touch` clashes with `UnityEngine.Touch` namespace in mixed imports → alias the EnhancedTouch type (`using ETouch = ...`) to avoid CS0104.
+- 2026-06-06 — Option 1 CLI refresh fails when GUI Unity already has the project lock (`another Unity instance is running`) → either close Unity first or use `scripts/unity_auto_compile_watch.py --close-unity-if-open`.

@@ -20,3 +20,16 @@ Controls in Editor:
 
 Build APK (batchmode):
 `/Applications/Unity/Hub/Editor/2022.3.4f1/Unity.app/Contents/MacOS/Unity -quit -batchmode -projectPath . -executeMethod Builder.BuildAndroid -logFile build.log`
+
+Automatic compile/error checking (Option 1 CLI):
+- One-shot refresh+parse:
+`python3 scripts/unity_auto_compile_watch.py --project . --once`
+- If Unity GUI is open and you still want Option 1 behavior, allow watcher to close Unity first:
+`python3 scripts/unity_auto_compile_watch.py --project . --once --close-unity-if-open`
+- Continuous watch loop:
+`python3 scripts/unity_auto_compile_watch.py --project . --interval 3`
+
+Outputs:
+- Latest status JSON: `TestResults/auto-compile-status.json`
+- Append-only history: `TestResults/auto-compile-history.log`
+- Unity raw log: `/tmp/unity_auto_compile.log`

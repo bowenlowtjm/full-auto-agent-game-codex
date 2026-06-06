@@ -1,0 +1,6 @@
+[2026-06-06T11:24:47Z] status=unknown errors=0 log=/tmp/unity_auto_compile.log
+[2026-06-06T11:25:13Z] status=error errors=0 log=/tmp/unity_auto_compile.log
+[2026-06-06T11:25:54Z] status=error errors=2 log=/tmp/unity_auto_compile.log
+  L41: It looks like another Unity instance is running with this project open.
+  L46: Fatal Error! It looks like another Unity instance is running with this project open.
+[2026-06-06T11:26:07Z] status=ok errors=0 log=/tmp/unity_auto_compile.log
