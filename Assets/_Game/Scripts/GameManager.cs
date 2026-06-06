@@ -6,13 +6,14 @@ namespace Pully.Game
     public class GameManager : MonoBehaviour
     {
         [SerializeField] private RulesetDefinition ruleset;
+        [SerializeField] private TargetSpawner spawner;
 
         private float _timeLeft;
         private int _score;
         private int _lives;
         private int _streak;
         private float _combo = 1f;
-        private string _lastEvent = "Hit targets with matching gesture to score";
+        private string _lastEvent = "Match gesture to score";
         private float _lastEventAt;
         private float _hitFlash;
         private float _missFlash;
@@ -20,7 +21,7 @@ namespace Pully.Game
         private GUIStyle _hud;
         private GUIStyle _title;
         private GUIStyle _toast;
-        private GUIStyle _button;
+        private GUIStyle _chip;
 
         public int Score => _score;
         public int Lives => _lives;
@@ -37,13 +38,18 @@ namespace Pully.Game
             _combo = 1f;
         }
 
+        public void BindSpawner(TargetSpawner targetSpawner)
+        {
+            spawner = targetSpawner;
+        }
+
         private void Update()
         {
             if (ruleset == null) return;
 
             _timeLeft -= Time.deltaTime;
-            _hitFlash = Mathf.Max(0f, _hitFlash - Time.deltaTime * 2.5f);
-            _missFlash = Mathf.Max(0f, _missFlash - Time.deltaTime * 2.0f);
+            _hitFlash = Mathf.Max(0f, _hitFlash - Time.deltaTime * 2.6f);
+            _missFlash = Mathf.Max(0f, _missFlash - Time.deltaTime * 2.2f);
 
             if (Camera.main != null)
             {
@@ -72,13 +78,13 @@ namespace Pully.Game
                 _combo = ScoreCalculator.NextCombo(_combo, ruleset.comboStep, ruleset.comboCap);
                 _streak += 1;
                 _hitFlash = 1f;
-                _lastEvent = $"HIT +{reward} ({target.Rule.shape}/{target.Rule.requiredGesture})";
+                _lastEvent = $"Perfect +{reward}";
                 _lastEventAt = Time.time;
                 target.Resolve();
             }
             else
             {
-                _lastEvent = $"MISS expected {target.Rule.requiredGesture}, got {gesture}";
+                _lastEvent = $"Miss: wanted {ShortGesture(target.Rule.requiredGesture)}";
                 _lastEventAt = Time.time;
                 Penalize();
                 target.Resolve();
@@ -87,7 +93,7 @@ namespace Pully.Game
 
         public void OnTargetExpired(Target target)
         {
-            _lastEvent = $"EXPIRED {target.Rule.shape}/{target.Rule.requiredGesture}";
+            _lastEvent = $"Too slow: {ShortGesture(target.Rule.requiredGesture)}";
             _lastEventAt = Time.time;
             Penalize();
         }
@@ -103,6 +109,19 @@ namespace Pully.Game
                 _lives = 0;
                 EndGame();
             }
+        }
+
+        private static string ShortGesture(RulesetDefinition.Gesture g)
+        {
+            return g switch
+            {
+                RulesetDefinition.Gesture.SingleTap => "Tap",
+                RulesetDefinition.Gesture.DoubleTap => "Double",
+                RulesetDefinition.Gesture.LongPress => "Hold",
+                RulesetDefinition.Gesture.SwipeTap => "Swipe",
+                RulesetDefinition.Gesture.TwoFingerTap => "2-Finger",
+                _ => g.ToString()
+            };
         }
 
         private void EndGame()
@@ -134,15 +153,74 @@ namespace Pully.Game
             };
             _toast = new GUIStyle(GUI.skin.label)
             {
-                fontSize = 16,
+                fontSize = 18,
                 fontStyle = FontStyle.Bold,
                 normal = { textColor = new Color(1f, 0.92f, 0.45f) }
             };
-            _button = new GUIStyle(GUI.skin.button)
+            _chip = new GUIStyle(GUI.skin.box)
             {
-                fontSize = 16,
-                fontStyle = FontStyle.Bold
+                fontSize = 14,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter,
+                normal = { textColor = Color.white }
             };
+        }
+
+        private void DrawGestureLegend(float y, float w)
+        {
+            float chipW = (w - 40f) / 5f;
+            float x = 20f;
+            DrawChip(new Rect(x + chipW * 0, y, chipW - 8, 28), "Tap", Color.green);
+            DrawChip(new Rect(x + chipW * 1, y, chipW - 8, 28), "Hold", Color.red);
+            DrawChip(new Rect(x + chipW * 2, y, chipW - 8, 28), "Double", Color.blue);
+            DrawChip(new Rect(x + chipW * 3, y, chipW - 8, 28), "Swipe", Color.yellow);
+            DrawChip(new Rect(x + chipW * 4, y, chipW - 8, 28), "2-Finger", new Color(0.6f, 0.2f, 0.8f));
+        }
+
+        private void DrawChip(Rect rect, string text, Color color)
+        {
+            var old = GUI.color;
+            GUI.color = new Color(color.r, color.g, color.b, 0.9f);
+            GUI.Box(rect, text, _chip);
+            GUI.color = old;
+        }
+
+        private void DrawCurrentObjective(float y, float w)
+        {
+            if (spawner == null || spawner.ActiveTargets.Count == 0)
+            {
+                GUI.Label(new Rect(20, y, w - 40, 24), "Objective: wait for next target...", _hud);
+                return;
+            }
+
+            Target best = null;
+            float maxLife = -1f;
+            foreach (var t in spawner.ActiveTargets)
+            {
+                if (t == null) continue;
+                if (t.Lifetime01 > maxLife)
+                {
+                    maxLife = t.Lifetime01;
+                    best = t;
+                }
+            }
+
+            if (best != null)
+            {
+                string danger = best.Lifetime01 > 0.75f ? " !!" : "";
+                GUI.Label(new Rect(20, y, w - 40, 24),
+                    $"Priority: {best.Rule.shape} {ColorName(best.Rule.color)} -> {ShortGesture(best.Rule.requiredGesture)}{danger}", _hud);
+            }
+        }
+
+        private static string ColorName(Color c)
+        {
+            if (c == Color.green) return "Green";
+            if (c == Color.red) return "Red";
+            if (c == Color.blue) return "Blue";
+            if (c == Color.yellow) return "Yellow";
+            if (Mathf.Abs(c.r - 0.6f) < 0.05f && Mathf.Abs(c.b - 0.8f) < 0.05f) return "Purple";
+            return "Color";
         }
 
         private void OnGUI()
@@ -150,15 +228,18 @@ namespace Pully.Game
             EnsureStyles();
             float w = Screen.width;
 
-            GUI.Label(new Rect(18, 16, 300, 36), $"PULLY", _title);
+            GUI.Label(new Rect(18, 16, 300, 36), "PULLY", _title);
             GUI.Label(new Rect(20, 48, 360, 28), $"Score: {_score}", _hud);
             GUI.Label(new Rect(20, 74, 360, 28), $"Combo: x{_combo:0.0}   Streak: {_streak}", _hud);
             GUI.Label(new Rect(20, 100, 360, 28), $"Lives: {_lives}    Time: {_timeLeft:0.0}", _hud);
 
-            GUI.Label(new Rect(20, 132, w - 40, 24), "Input: click=tap | Ctrl=double | Shift=hold | Alt=swipe | Cmd=2-finger", _hud);
+            DrawGestureLegend(132, w);
+            DrawCurrentObjective(166, w);
+
+            GUI.Label(new Rect(20, 192, w - 40, 24), "Editor controls: Click Tap | Ctrl Double | Shift Hold | Alt Swipe | Cmd 2-Finger", _hud);
             if (!string.IsNullOrEmpty(_lastEvent) && Time.time - _lastEventAt <= 2.8f)
             {
-                GUI.Label(new Rect(20, 160, w - 40, 28), $"Last: {_lastEvent}", _toast);
+                GUI.Label(new Rect(20, 218, w - 40, 30), $"Last: {_lastEvent}", _toast);
             }
         }
     }

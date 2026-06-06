@@ -7,7 +7,7 @@ import re
 import subprocess
 import sys
 import time
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from pathlib import Path
 
 WATCH_EXTS = {".cs", ".asmdef", ".json", ".shader", ".cginc", ".hlsl"}
@@ -29,7 +29,7 @@ SUCCESS_PATTERNS = [
 
 
 def now():
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def should_watch(path: Path) -> bool:

@@ -33,6 +33,7 @@ namespace Pully.Game
 
             gm.Initialize(ruleset);
             spawner.Initialize(ruleset, Camera.main, container);
+            gm.BindSpawner(spawner);
             recognizer.Initialize(ruleset, spawner, gm);
         }
     }
